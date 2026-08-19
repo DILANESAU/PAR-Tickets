@@ -230,7 +230,7 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">
                 Detalles adicionales{" "}
-                <span className="text-slate-500 text-xs font-normal">
+                <span className="text-slate-400 text-xs font-normal">
                   (Opcional)
                 </span>
               </label>

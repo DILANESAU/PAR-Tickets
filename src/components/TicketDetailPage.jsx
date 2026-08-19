@@ -9,6 +9,7 @@ import {
 import { crearConexionTicketHub } from "../services/Signalservice";
 import { toast } from "sonner";
 import { catalogoIncidentes } from "../constants/catalogoIncidentes";
+import { PrioridadBadge, EstadoBadge } from "./Badges";
 
 function TicketDetailPage() {
   const { id } = useParams();
@@ -181,34 +182,20 @@ function TicketDetailPage() {
               </span>
 
               {/* Insignia de Estado */}
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-semibold border ${
-                  ticket.estado === "Cerrado"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                }`}
-              >
-                {ticket.estado}
-              </span>
+              <EstadoBadge estado={ticket.estado} />
 
               {/* Insignia de Prioridad */}
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-medium border ${
-                  ticket.prioridad === "Alta" || ticket.prioridad === "Critica"
-                    ? "bg-red-950/40 text-red-400 border-red-900/50"
-                    : ticket.prioridad === "Media"
-                      ? "bg-orange-950/40 text-orange-400 border-orange-900/50"
-                      : "bg-slate-800 text-slate-400 border-slate-700"
-                }`}
-              >
-                Prioridad {ticket.prioridad}
-              </span>
+              <PrioridadBadge
+                prioridad={ticket.prioridad}
+                prefijo="Prioridad "
+                className="rounded-full"
+              />
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">
               {ticket.asunto}
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-400">
               Reportado el {new Date(ticket.fechaCreacion).toLocaleDateString()}{" "}
               a las{" "}
               {new Date(ticket.fechaCreacion).toLocaleTimeString([], {
@@ -269,7 +256,7 @@ function TicketDetailPage() {
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               {datosAdicionales.map(({ label, valor }) => (
                 <div key={label}>
-                  <dt className="text-xs text-slate-500">{label}</dt>
+                  <dt className="text-xs text-slate-400">{label}</dt>
                   <dd className="text-sm text-slate-200 font-medium">
                     {valor}
                   </dd>
@@ -287,7 +274,7 @@ function TicketDetailPage() {
 
           <div className="space-y-4">
             {mensajes.length === 0 && (
-              <p className="text-slate-500 text-sm text-center py-4">
+              <p className="text-slate-400 text-sm text-center py-4">
                 Aún no hay mensajes en este ticket.
               </p>
             )}
@@ -307,7 +294,7 @@ function TicketDetailPage() {
                     <span className="font-medium text-slate-200">
                       {mensaje.remitente}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-400">
                       {new Date(mensaje.fechaEnvio).toLocaleString([], {
                         day: "2-digit",
                         month: "short",
@@ -344,7 +331,7 @@ function TicketDetailPage() {
               </form>
             ) : (
               <div className="mt-6 text-center p-4 bg-slate-900/30 border border-slate-800/30 rounded-xl">
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-400 text-sm">
                   Este ticket está cerrado. Ya no se pueden enviar mensajes.
                 </p>
               </div>
