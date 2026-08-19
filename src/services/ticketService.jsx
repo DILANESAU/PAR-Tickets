@@ -118,22 +118,63 @@ export const asignarSucursal = async (usuarioId, sucursalId) => {
   }
 };
 
-export const obtenerSucursales = async () => {
+export const obtenerSucursales = async (incluirInactivas = false) => {
   try {
-    const respuesta = await api.get("/sucursales");
+    const respuesta = await api.get("/sucursales", {
+      params: { incluirInactivas },
+    });
     return respuesta.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const crearSucursal = async (numeroTienda, nombre, seccion) => {
+export const crearSucursal = async (numeroTienda, nombre, seccion, empresaId) => {
   try {
     const respuesta = await api.post("/sucursales", {
       numeroTienda,
       nombre,
       seccion: seccion || null,
+      empresaId,
     });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const editarSucursal = async (
+  id,
+  numeroTienda,
+  nombre,
+  seccion,
+  empresaId,
+) => {
+  try {
+    const respuesta = await api.put(`/sucursales/${id}`, {
+      numeroTienda,
+      nombre,
+      seccion: seccion || null,
+      empresaId,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const cambiarEstadoSucursal = async (id, activa) => {
+  try {
+    const respuesta = await api.put(`/sucursales/${id}/estado`, { activa });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerEmpresas = async () => {
+  try {
+    const respuesta = await api.get("/empresas");
     return respuesta.data;
   } catch (error) {
     throw error;
@@ -148,6 +189,35 @@ export const registrarUsuario = async (nombre, correo, password, rol) => {
       password,
       rol,
     });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const editarUsuario = async (id, nombre, rol) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${id}`, { nombre, rol });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const resetearPasswordUsuario = async (id, passwordNueva) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${id}/password`, {
+      passwordNueva,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const cambiarEstadoUsuario = async (id, activo) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${id}/estado`, { activo });
     return respuesta.data;
   } catch (error) {
     throw error;

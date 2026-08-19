@@ -1,38 +1,37 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { crearSucursal } from "../services/ticketService";
+import { editarUsuario } from "../services/ticketService";
 
-function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
-  const [numeroTienda, setNumeroTienda] = useState("");
+function EditarUsuarioModal({ isOpen, onClose, onUsuarioEditado, usuario }) {
   const [nombre, setNombre] = useState("");
-  const [seccion, setSeccion] = useState("");
-  const [empresaId, setEmpresaId] = useState("");
+  const [rol, setRol] = useState("Cliente");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  // Repuebla el formulario cuando se abre con un usuario distinto — se
+  // ajusta durante el render (no en un efecto), igual que en
+  // EditarSucursalModal.
+  const [usuarioIdPrevio, setUsuarioIdPrevio] = useState(null);
+  if (usuario && usuario.id !== usuarioIdPrevio) {
+    setUsuarioIdPrevio(usuario.id);
+    setNombre(usuario.nombre);
+    setRol(usuario.rol);
+  }
+
+  if (!isOpen || !usuario) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await crearSucursal(
-        Number(numeroTienda),
-        nombre,
-        seccion,
-        Number(empresaId),
-      );
-      toast.success("Sucursal creada correctamente.");
+      await editarUsuario(usuario.id, nombre, rol);
+      toast.success("Usuario actualizado correctamente.");
 
-      setNumeroTienda("");
-      setNombre("");
-      setSeccion("");
-      setEmpresaId("");
-
-      if (onSucursalCreada) onSucursalCreada();
+      if (onUsuarioEditado) onUsuarioEditado();
       onClose();
     } catch (error) {
-      const mensaje = error.response?.data || "No se pudo crear la sucursal.";
+      const mensaje =
+        error.response?.data || "No se pudo actualizar el usuario.";
       toast.error(typeof mensaje === "string" ? mensaje : "Ocurrió un error.");
     } finally {
       setIsSubmitting(false);
@@ -45,7 +44,7 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
 
       <div className="relative bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <h2 className="text-xl font-bold text-white">Nueva Sucursal</h2>
+          <h2 className="text-xl font-bold text-white">Editar Usuario</h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white p-2 rounded-full cursor-pointer transition-colors"
@@ -57,42 +56,22 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Empresa
-            </label>
-            <select
-              required
-              value={empresaId}
-              onChange={(e) => setEmpresaId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="" disabled>
-                Selecciona una empresa...
-              </option>
-              {empresas.map((empresa) => (
-                <option key={empresa.id} value={empresa.id}>
-                  {empresa.razonSocial}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              No. de tienda
+              Correo
             </label>
             <input
-              type="number"
-              required
-              min={1}
-              value={numeroTienda}
-              onChange={(e) => setNumeroTienda(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              type="email"
+              disabled
+              value={usuario.correo}
+              className="w-full bg-slate-900 border border-slate-800 text-slate-400 rounded-xl px-4 py-2.5 cursor-not-allowed"
             />
+            <p className="text-xs text-slate-400 mt-1">
+              El correo no se puede cambiar aquí.
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Nombre
+              Nombre completo
             </label>
             <input
               type="text"
@@ -105,17 +84,16 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Sección{" "}
-              <span className="text-slate-400 text-xs font-normal">
-                (Opcional)
-              </span>
+              Rol
             </label>
-            <input
-              type="text"
-              value={seccion}
-              onChange={(e) => setSeccion(e.target.value)}
+            <select
+              value={rol}
+              onChange={(e) => setRol(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
+            >
+              <option value="Cliente">Cliente</option>
+              <option value="Tecnico">Técnico</option>
+            </select>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -131,7 +109,7 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
               disabled={isSubmitting}
               className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer transition-all active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Creando..." : "Crear Sucursal"}
+              {isSubmitting ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>
         </form>
@@ -140,4 +118,4 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
   );
 }
 
-export default NuevaSucursalModal;
+export default EditarUsuarioModal;

@@ -1,38 +1,47 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { crearSucursal } from "../services/ticketService";
+import { editarSucursal } from "../services/ticketService";
 
-function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
+function EditarSucursalModal({ isOpen, onClose, onSucursalEditada, sucursal, empresas }) {
   const [numeroTienda, setNumeroTienda] = useState("");
   const [nombre, setNombre] = useState("");
   const [seccion, setSeccion] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  // Repuebla el formulario cuando se abre con una sucursal distinta — se
+  // ajusta durante el render (no en un efecto) para no disparar un segundo
+  // ciclo de render al abrir el modal.
+  const [sucursalIdPrevia, setSucursalIdPrevia] = useState(null);
+  if (sucursal && sucursal.id !== sucursalIdPrevia) {
+    setSucursalIdPrevia(sucursal.id);
+    setNumeroTienda(String(sucursal.numeroTienda));
+    setNombre(sucursal.nombre);
+    setSeccion(sucursal.seccion || "");
+    setEmpresaId(String(sucursal.empresaId));
+  }
+
+  if (!isOpen || !sucursal) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await crearSucursal(
+      await editarSucursal(
+        sucursal.id,
         Number(numeroTienda),
         nombre,
         seccion,
         Number(empresaId),
       );
-      toast.success("Sucursal creada correctamente.");
+      toast.success("Sucursal actualizada correctamente.");
 
-      setNumeroTienda("");
-      setNombre("");
-      setSeccion("");
-      setEmpresaId("");
-
-      if (onSucursalCreada) onSucursalCreada();
+      if (onSucursalEditada) onSucursalEditada();
       onClose();
     } catch (error) {
-      const mensaje = error.response?.data || "No se pudo crear la sucursal.";
+      const mensaje =
+        error.response?.data || "No se pudo actualizar la sucursal.";
       toast.error(typeof mensaje === "string" ? mensaje : "Ocurrió un error.");
     } finally {
       setIsSubmitting(false);
@@ -45,7 +54,7 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
 
       <div className="relative bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <h2 className="text-xl font-bold text-white">Nueva Sucursal</h2>
+          <h2 className="text-xl font-bold text-white">Editar Sucursal</h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white p-2 rounded-full cursor-pointer transition-colors"
@@ -65,9 +74,6 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
               onChange={(e) => setEmpresaId(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
-              <option value="" disabled>
-                Selecciona una empresa...
-              </option>
               {empresas.map((empresa) => (
                 <option key={empresa.id} value={empresa.id}>
                   {empresa.razonSocial}
@@ -131,7 +137,7 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
               disabled={isSubmitting}
               className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer transition-all active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Creando..." : "Crear Sucursal"}
+              {isSubmitting ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>
         </form>
@@ -140,4 +146,4 @@ function NuevaSucursalModal({ isOpen, onClose, onSucursalCreada, empresas }) {
   );
 }
 
-export default NuevaSucursalModal;
+export default EditarSucursalModal;

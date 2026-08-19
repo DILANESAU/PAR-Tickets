@@ -53,37 +53,37 @@ function TelemetriaPage() {
             <p className="text-slate-400 text-sm font-medium">
               Tiempo promedio de asignación
             </p>
-            <p className="text-2xl font-bold mt-2 text-white">
+            <div className="text-2xl font-bold mt-2 text-white">
               {isLoading ? (
                 <Skeleton className="h-7 w-24" />
               ) : (
                 formatearMinutos(metricas?.tiempoPromedioAsignacionMinutos)
               )}
-            </p>
+            </div>
           </div>
           <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
             <p className="text-slate-400 text-sm font-medium">
               Tiempo promedio de resolución
             </p>
-            <p className="text-2xl font-bold mt-2 text-white">
+            <div className="text-2xl font-bold mt-2 text-white">
               {isLoading ? (
                 <Skeleton className="h-7 w-24" />
               ) : (
                 formatearMinutos(metricas?.tiempoPromedioResolucionMinutos)
               )}
-            </p>
+            </div>
           </div>
           <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
             <p className="text-slate-400 text-sm font-medium">
               Tickets totales
             </p>
-            <p className="text-2xl font-bold mt-2 text-white">
+            <div className="text-2xl font-bold mt-2 text-white">
               {isLoading ? (
                 <Skeleton className="h-7 w-16" />
               ) : (
                 (metricas?.totalTickets ?? 0)
               )}
-            </p>
+            </div>
           </div>
         </div>
 
