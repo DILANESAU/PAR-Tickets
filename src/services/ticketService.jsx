@@ -58,6 +58,7 @@ export const iniciarSesion = async (correo, password) => {
     if (respuesta.data.token) {
       localStorage.setItem("token_soporte", respuesta.data.token);
       localStorage.setItem("usuario_nombre", respuesta.data.usuario.nombre);
+      localStorage.setItem("usuario_rol", respuesta.data.usuario.rol);
     }
     return respuesta.data;
   } catch (error) {
@@ -68,7 +69,12 @@ export const iniciarSesion = async (correo, password) => {
 export const cerrarSesion = () => {
   localStorage.removeItem("token_soporte");
   localStorage.removeItem("usuario_nombre");
+  localStorage.removeItem("usuario_rol");
 };
+
+// El sidebar y las rutas de gestión lo usan para decidir qué mostrarle a
+// un Técnico vs. un Cliente, sin tener que decodificar el JWT en el front.
+export const esTecnico = () => localStorage.getItem("usuario_rol") === "Tecnico";
 
 export const obtenerPerfil = async () => {
   try {
@@ -85,6 +91,54 @@ export const cambiarPassword = async (passwordActual, passwordNueva) => {
       passwordActual,
       passwordNueva,
     });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// --- FUNCIONES DE GESTIÓN (solo Técnico) ---
+export const obtenerUsuarios = async () => {
+  try {
+    const respuesta = await api.get("/usuarios");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const asignarSucursal = async (usuarioId, sucursalId) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${usuarioId}/sucursal`, {
+      sucursalId,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerSucursales = async () => {
+  try {
+    const respuesta = await api.get("/sucursales");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerAuditoria = async (limite = 100) => {
+  try {
+    const respuesta = await api.get("/auditoria", { params: { limite } });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerMetricas = async () => {
+  try {
+    const respuesta = await api.get("/tickets/metricas");
     return respuesta.data;
   } catch (error) {
     throw error;

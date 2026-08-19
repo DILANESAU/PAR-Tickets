@@ -5,9 +5,12 @@ import DashboardPage from "./pages/DashboardPage";
 import TicketDetailPage from "./components/TicketDetailPage";
 import LoginPage from "./pages/LoginPage"; // <-- Importa la nueva página
 import RutaProtegida from "./components/RutaProtegida";
+import RutaTecnico from "./components/RutaTecnico";
 import HistorialPage from "./pages/HistorialPage";
 import WikiPage from "./pages/WikiPage";
 import PerfilPage from "./pages/PerfilPage";
+import GestionUsuariosPage from "./pages/GestionUsuariosPage";
+import TelemetriaPage from "./pages/TelemetriaPage";
 
 function App() {
   return (
@@ -31,6 +34,15 @@ function App() {
             <Route path="/historial" element={<HistorialPage />} />
             <Route path="/wiki" element={<WikiPage />} />
             <Route path="/perfil" element={<PerfilPage />} />
+
+            {/* Solo Técnico: RutaTecnico manda a /dashboard si no lo es */}
+            <Route element={<RutaTecnico />}>
+              <Route
+                path="/gestion/usuarios"
+                element={<GestionUsuariosPage />}
+              />
+              <Route path="/gestion/telemetria" element={<TelemetriaPage />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { cerrarSesion } from "../services/ticketService";
+import { cerrarSesion, esTecnico } from "../services/ticketService";
 
 function MainLayout() {
   const location = useLocation();
@@ -31,6 +31,14 @@ function MainLayout() {
     { to: "/dashboard", icono: "📊", label: "Panel Principal" },
     { to: "/historial", icono: "📋", label: "Mis Tickets" },
     { to: "/wiki", icono: "📚", label: "Base de Conocimientos" },
+  ];
+
+  // Solo visibles para Técnico — el backend ya rechaza estas rutas con 403
+  // para cualquier otro rol, esto es nada más para no mostrarle a un
+  // Cliente un enlace que le va a dar error.
+  const enlacesGestion = [
+    { to: "/gestion/usuarios", icono: "👥", label: "Usuarios" },
+    { to: "/gestion/telemetria", icono: "📈", label: "Telemetría" },
   ];
 
   return (
@@ -68,6 +76,23 @@ function MainLayout() {
               <span className="mr-3">{enlace.icono}</span> {enlace.label}
             </Link>
           ))}
+
+          {esTecnico() && (
+            <>
+              <p className="px-4 pt-4 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Gestión
+              </p>
+              {enlacesGestion.map((enlace) => (
+                <Link
+                  key={enlace.to}
+                  to={enlace.to}
+                  className={`flex items-center px-4 py-3 rounded-xl transition-colors ${isActive(enlace.to) ? "bg-blue-600/10 text-blue-400 font-medium" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+                >
+                  <span className="mr-3">{enlace.icono}</span> {enlace.label}
+                </Link>
+              ))}
+            </>
+          )}
         </nav>
 
         {/* Footer del Sidebar (Perfil y Salir) */}
