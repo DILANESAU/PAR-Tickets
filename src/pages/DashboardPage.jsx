@@ -57,6 +57,12 @@ function DashboardPage() {
     return ticket.estado === filtroEstado;
   });
 
+  const pestañas = [
+    { valor: "Todos", label: "Todos", total: totalTickets },
+    { valor: "Pendientes", label: "Abiertos", total: abiertosOProceso },
+    { valor: "Cerrado", label: "Cerrado", total: resueltos },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       {/* Contenido Principal */}
@@ -78,173 +84,203 @@ function DashboardPage() {
           </button>
         </div>
 
-        {/* Grid de Métricas Dinámicas */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
-            <p className="text-slate-400 text-sm font-medium">
-              Tickets Totales
-            </p>
-            <p className="text-3xl font-bold mt-2 text-white">{totalTickets}</p>
-          </div>
-          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
-            <p className="text-amber-400 text-sm font-medium">
-              Abiertos / En Proceso
-            </p>
-            <p className="text-3xl font-bold mt-2 text-white">
-              {abiertosOProceso}
-            </p>
-          </div>
-          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
-            <p className="text-emerald-400 text-sm font-medium">Resueltos</p>
-            <p className="text-3xl font-bold mt-2 text-white">{resueltos}</p>
-          </div>
-        </div>
-
-        {/* Desglose por categoría: solo aparecen las que ya tienen tickets */}
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6 mb-8">
-          <h2 className="font-semibold text-white">Tickets por categoría</h2>
-          <p className="text-slate-400 text-xs mt-0.5 mb-5">
-            Proporción de solicitudes abiertas y resueltas por tipo de incidente
-          </p>
-
-          {isLoading ? (
-            <div className="space-y-4">
-              {Array(3)
-                .fill(0)
-                .map((_, idx) => (
-                  <div key={idx} className="space-y-1.5">
-                    <Skeleton className="h-3.5 w-40" />
-                    <Skeleton className="h-2 w-full rounded-full" />
-                  </div>
-                ))}
-            </div>
-          ) : metricasPorCategoria.length === 0 ? (
-            <p className="text-slate-400 text-sm text-center py-4">
-              Aún no hay tickets para desglosar por categoría.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {metricasPorCategoria.map((cat) => {
-                const pctAbiertos =
-                  cat.total > 0 ? (cat.abiertos / cat.total) * 100 : 0;
-                const pctResueltos =
-                  cat.total > 0 ? (cat.resueltos / cat.total) * 100 : 0;
-
-                return (
-                  <div key={cat.categoria}>
-                    <div className="flex items-center justify-between mb-1.5 gap-3">
-                      <span className="text-sm text-slate-300 flex items-center gap-2 shrink-0">
-                        <span aria-hidden="true">{cat.icono}</span>
-                        {cat.label}
-                      </span>
-                      <span className="text-xs text-slate-400 text-right">
-                        <span className="text-slate-400 font-medium">
-                          {cat.total}
-                        </span>{" "}
-                        total ·{" "}
-                        <span className="text-amber-400">
-                          {cat.abiertos} abiertos
-                        </span>{" "}
-                        ·{" "}
-                        <span className="text-emerald-400">
-                          {cat.resueltos} resueltos
-                        </span>
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex">
-                      <div
-                        className="h-full bg-amber-500/70"
-                        style={{ width: `${pctAbiertos}%` }}
-                      />
-                      <div
-                        className="h-full bg-emerald-500/70"
-                        style={{ width: `${pctResueltos}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* BOTONERA DE PESTAÑAS (TABS) */}
-        <div className="flex space-x-2 mb-6 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 inline-flex">
-          {["Todos", "Pendientes", "Cerrado"].map((estado) => (
-            <button
-              key={estado}
-              onClick={() => setFiltroEstado(estado)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                filtroEstado === estado
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              {estado === "Pendientes" ? "Abiertos" : estado}
-            </button>
-          ))}
-        </div>
-
-        {/* Lista de Tickets Filtrados */}
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-          <div className="p-5 border-b border-slate-800">
-            <h2 className="font-semibold text-lg text-white">
-              Historial (
-              {filtroEstado === "Todos" ? "Historial Completo" : filtroEstado})
-            </h2>
-          </div>
-
-          <div className="divide-y divide-slate-800">
-            {isLoading ? (
-              Array(3)
-                .fill(0)
-                .map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="p-5 flex flex-col sm:flex-row justify-between gap-4"
-                  >
-                    <div className="space-y-3 w-full max-w-md">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-5 w-full" />
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <Skeleton className="h-6 w-16 rounded-md" />
-                      <Skeleton className="h-6 w-20 rounded-full" />
-                    </div>
-                  </div>
-                ))
-            ) : ticketsFiltrados.length === 0 ? (
-              <div className="p-10 text-center text-slate-400 text-sm">
-                No hay tickets para mostrar en esta categoría.
-              </div>
-            ) : (
-              ticketsFiltrados.map((ticket) => (
-                <Link
-                  to={`/ticket/${ticket.id}`}
-                  key={ticket.id}
-                  className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/40 transition-colors block cursor-pointer"
+        {/* Columna principal (lista, lo más accionable) a la izquierda;
+            métricas y desglose por categoría como panel secundario a la
+            derecha en escritorio. En pantallas chicas se apilan con la
+            lista primero, para no tener que bajar por toda la estadística
+            antes de llegar a lo que realmente se viene a hacer aquí. */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* --- COLUMNA PRINCIPAL: filtros + lista de tickets --- */}
+          <div className="lg:col-span-2 space-y-6 lg:order-1">
+            {/* BOTONERA DE PESTAÑAS (TABS), con conteo por estado */}
+            <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 w-fit">
+              {pestañas.map(({ valor, label, total }) => (
+                <button
+                  key={valor}
+                  onClick={() => setFiltroEstado(valor)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    filtroEstado === valor
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                  }`}
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-mono text-blue-400 font-medium bg-blue-950 border border-blue-900 px-2 py-0.5 rounded">
-                        TK-{ticket.id}
-                      </span>
-                      <span className="text-slate-400 text-xs">
-                        {new Date(ticket.fechaCreacion).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h3 className="font-medium text-white text-base">
-                      {ticket.asunto}
-                    </h3>
-                  </div>
+                  {label}
+                  {!isLoading && (
+                    <span
+                      className={`ml-1.5 ${filtroEstado === valor ? "text-blue-100" : "text-slate-500"}`}
+                    >
+                      ({total})
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
 
-                  <div className="flex items-center space-x-4 self-end sm:self-auto">
-                    <PrioridadBadge prioridad={ticket.prioridad} />
-                    <EstadoBadge estado={ticket.estado} />
+            {/* Lista de Tickets Filtrados */}
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+              <div className="p-5 border-b border-slate-800">
+                <h2 className="font-semibold text-lg text-white">
+                  Historial (
+                  {filtroEstado === "Todos"
+                    ? "Historial Completo"
+                    : filtroEstado}
+                  )
+                </h2>
+              </div>
+
+              <div className="divide-y divide-slate-800">
+                {isLoading ? (
+                  Array(3)
+                    .fill(0)
+                    .map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="p-5 flex flex-col sm:flex-row justify-between gap-4"
+                      >
+                        <div className="space-y-3 w-full max-w-md">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-5 w-full" />
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <Skeleton className="h-6 w-16 rounded-md" />
+                          <Skeleton className="h-6 w-20 rounded-full" />
+                        </div>
+                      </div>
+                    ))
+                ) : ticketsFiltrados.length === 0 ? (
+                  <div className="p-10 text-center text-slate-400 text-sm">
+                    No hay tickets para mostrar en esta categoría.
                   </div>
-                </Link>
-              ))
-            )}
+                ) : (
+                  ticketsFiltrados.map((ticket) => (
+                    <Link
+                      to={`/ticket/${ticket.id}`}
+                      key={ticket.id}
+                      className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/40 transition-colors block cursor-pointer"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-mono text-blue-400 font-medium bg-blue-950 border border-blue-900 px-2 py-0.5 rounded">
+                            TK-{ticket.id}
+                          </span>
+                          <span className="text-slate-400 text-xs">
+                            {new Date(
+                              ticket.fechaCreacion,
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <h3 className="font-medium text-white text-base">
+                          {ticket.asunto}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center space-x-4 self-end sm:self-auto">
+                        <PrioridadBadge prioridad={ticket.prioridad} />
+                        <EstadoBadge estado={ticket.estado} />
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* --- PANEL SECUNDARIO: métricas + desglose por categoría --- */}
+          <div className="space-y-4 lg:order-2">
+            {/* Métricas: 3 en fila en pantallas medianas, apiladas en el
+                panel angosto de escritorio */}
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-4">
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
+                <p className="text-slate-400 text-xs lg:text-sm font-medium">
+                  Tickets Totales
+                </p>
+                <p className="text-2xl lg:text-3xl font-bold mt-2 text-white">
+                  {totalTickets}
+                </p>
+              </div>
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
+                <p className="text-amber-400 text-xs lg:text-sm font-medium">
+                  Abiertos / En Proceso
+                </p>
+                <p className="text-2xl lg:text-3xl font-bold mt-2 text-white">
+                  {abiertosOProceso}
+                </p>
+              </div>
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm">
+                <p className="text-emerald-400 text-xs lg:text-sm font-medium">
+                  Resueltos
+                </p>
+                <p className="text-2xl lg:text-3xl font-bold mt-2 text-white">
+                  {resueltos}
+                </p>
+              </div>
+            </div>
+
+            {/* Desglose por categoría: solo aparecen las que ya tienen tickets */}
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6">
+              <h2 className="font-semibold text-white">
+                Tickets por categoría
+              </h2>
+              <p className="text-slate-400 text-xs mt-0.5 mb-5">
+                Proporción de solicitudes abiertas y resueltas por tipo de
+                incidente
+              </p>
+
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array(3)
+                    .fill(0)
+                    .map((_, idx) => (
+                      <div key={idx} className="space-y-1.5">
+                        <Skeleton className="h-3.5 w-40" />
+                        <Skeleton className="h-2 w-full rounded-full" />
+                      </div>
+                    ))}
+                </div>
+              ) : metricasPorCategoria.length === 0 ? (
+                <p className="text-slate-400 text-sm text-center py-4">
+                  Aún no hay tickets para desglosar por categoría.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {metricasPorCategoria.map((cat) => {
+                    const pctAbiertos =
+                      cat.total > 0 ? (cat.abiertos / cat.total) * 100 : 0;
+                    const pctResueltos =
+                      cat.total > 0 ? (cat.resueltos / cat.total) * 100 : 0;
+
+                    return (
+                      <div key={cat.categoria}>
+                        <div className="flex items-center justify-between mb-1.5 gap-3">
+                          <span className="text-sm text-slate-300 flex items-center gap-2 shrink-0">
+                            <span aria-hidden="true">{cat.icono}</span>
+                            {cat.label}
+                          </span>
+                          <span className="text-xs text-slate-400 text-right">
+                            <span className="text-slate-400 font-medium">
+                              {cat.total}
+                            </span>{" "}
+                            total
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex">
+                          <div
+                            className="h-full bg-amber-500/70"
+                            style={{ width: `${pctAbiertos}%` }}
+                            title={`${cat.abiertos} abiertos`}
+                          />
+                          <div
+                            className="h-full bg-emerald-500/70"
+                            style={{ width: `${pctResueltos}%` }}
+                            title={`${cat.resueltos} resueltos`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
