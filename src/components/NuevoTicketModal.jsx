@@ -1,50 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { crearTicket } from "../services/ticketService";
 import { toast } from "sonner";
-
-const catalogoIncidentes = [
-  {
-    asunto: "No hay conexión a Internet",
-    categoria: "redes",
-    prioridad: "Alta",
-  },
-  {
-    asunto: "Olvido de contraseña / Cuenta bloqueada",
-    categoria: "accesos",
-    prioridad: "Alta",
-  },
-  {
-    asunto: "Falla en impresora / Tóner vacío",
-    categoria: "hardware",
-    prioridad: "Media",
-  },
-  {
-    asunto: "Solicitud de instalación de software",
-    categoria: "software",
-    prioridad: "Baja",
-  },
-  {
-    asunto: "El equipo está muy lento o se congela",
-    categoria: "hardware",
-    prioridad: "Media",
-  },
-  {
-    asunto: "Fallo general en el ERP",
-    categoria: "software",
-    prioridad: "Critica",
-  },
-  {
-    asunto: "Otro problema (Especificar en descripción)",
-    categoria: "software",
-    prioridad: "Media",
-  },
-];
+import {
+  CATEGORIAS,
+  catalogoIncidentes,
+} from "../constants/catalogoIncidentes";
 
 function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
   const [asuntoSeleccionado, setAsuntoSeleccionado] = useState("");
   const [categoria, setCategoria] = useState("");
   const [prioridad, setPrioridad] = useState("");
   const [descripcion, setDescripcion] = useState("");
+
+  // Campos estructurados del incidente elegido (ej. RFC, Clave), si aplica.
+  const [camposIncidente, setCamposIncidente] = useState(null);
+  const [datosAdicionales, setDatosAdicionales] = useState({});
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,8 +44,20 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
     if (incidente) {
       setCategoria(incidente.categoria);
       setPrioridad(incidente.prioridad);
+      setCamposIncidente(incidente.campos ?? null);
+      setDatosAdicionales({});
     }
   };
+
+  const handleCambioCampoAdicional = (key, valor) => {
+    setDatosAdicionales((prev) => ({ ...prev, [key]: valor }));
+  };
+
+  // Solo para mostrar en pantalla: el slug real (ej. "erp_catalogo") se ve feo,
+  // así que mostramos su label ("ERP - Catálogo"). Lo que se manda al backend
+  // sigue siendo el slug, guardado en el estado `categoria`.
+  const categoriaLabel =
+    CATEGORIAS.find((g) => g.categoria === categoria)?.label ?? categoria;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,6 +69,10 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
         categoria,
         prioridad,
         descripcion: descripcion || "Sin descripción adicional",
+        datosAdicionales:
+          camposIncidente && Object.keys(datosAdicionales).length > 0
+            ? datosAdicionales
+            : null,
       };
 
       await crearTicket(nuevoTicket);
@@ -96,6 +82,8 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
       setCategoria("");
       setPrioridad("");
       setDescripcion("");
+      setCamposIncidente(null);
+      setDatosAdicionales({});
 
       if (onTicketCreado) onTicketCreado();
       onClose();
@@ -148,10 +136,14 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
                 <option value="" disabled>
                   Selecciona una opción de la lista...
                 </option>
-                {catalogoIncidentes.map((incidente, idx) => (
-                  <option key={idx} value={incidente.asunto}>
-                    {incidente.asunto}
-                  </option>
+                {CATEGORIAS.map((grupo) => (
+                  <optgroup key={grupo.categoria} label={grupo.label}>
+                    {grupo.incidentes.map((incidente) => (
+                      <option key={incidente.asunto} value={incidente.asunto}>
+                        {incidente.asunto}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -165,7 +157,7 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
                 <input
                   type="text"
                   disabled
-                  value={categoria}
+                  value={categoriaLabel}
                   placeholder="-"
                   className="w-full bg-slate-900 border border-slate-800 text-slate-400 rounded-xl px-4 py-2.5 cursor-not-allowed uppercase text-sm font-semibold"
                 />
@@ -184,6 +176,55 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
                 />
               </div>
             </div>
+
+            {/* CAMPOS ESPECÍFICOS DEL INCIDENTE (dinámicos según lo elegido arriba) */}
+            {camposIncidente && camposIncidente.length > 0 && (
+              <div className="space-y-4 border-t border-slate-800 pt-5">
+                <p className="text-sm font-medium text-slate-300">
+                  Datos para "{asuntoSeleccionado}"
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {camposIncidente.map((campo) => (
+                    <div key={campo.key}>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                        {campo.label}
+                      </label>
+                      {campo.tipo === "select" ? (
+                        <select
+                          value={datosAdicionales[campo.key] || ""}
+                          onChange={(e) =>
+                            handleCambioCampoAdicional(
+                              campo.key,
+                              e.target.value,
+                            )
+                          }
+                          className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        >
+                          <option value="">Selecciona...</option>
+                          {campo.opciones.map((opcion) => (
+                            <option key={opcion} value={opcion}>
+                              {opcion}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={campo.tipo === "date" ? "date" : "text"}
+                          value={datosAdicionales[campo.key] || ""}
+                          onChange={(e) =>
+                            handleCambioCampoAdicional(
+                              campo.key,
+                              e.target.value,
+                            )
+                          }
+                          className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* DESCRIPCIÓN (YA NO TIENE LA ETIQUETA 'REQUIRED') */}
             <div>

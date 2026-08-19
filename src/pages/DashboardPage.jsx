@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import NuevoTicketModal from "../components/NuevoTicketModal";
 import Skeleton from "../components/Skeleton";
 import { obtenerTickets } from "../services/ticketService";
+import { CATEGORIAS } from "../constants/catalogoIncidentes";
 
 function DashboardPage() {
   const [tickets, setTickets] = useState([]);
@@ -30,6 +31,24 @@ function DashboardPage() {
   const totalTickets = tickets.length;
   const abiertosOProceso = tickets.filter((t) => t.estado !== "Cerrado").length;
   const resueltos = tickets.filter((t) => t.estado === "Cerrado").length;
+
+  // Desglose dinámico: solo se calculan (y se muestran) las categorías que
+  // realmente tienen al menos un ticket, ordenadas de la más frecuente a la menos.
+  const metricasPorCategoria = CATEGORIAS.map((grupo) => {
+    const deEstaCategoria = tickets.filter(
+      (t) => t.categoria === grupo.categoria,
+    );
+    return {
+      categoria: grupo.categoria,
+      label: grupo.label,
+      icono: grupo.icono,
+      total: deEstaCategoria.length,
+      abiertos: deEstaCategoria.filter((t) => t.estado !== "Cerrado").length,
+      resueltos: deEstaCategoria.filter((t) => t.estado === "Cerrado").length,
+    };
+  })
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.total - a.total);
 
   const ticketsFiltrados = tickets.filter((ticket) => {
     if (filtroEstado === "Todos") return true;
@@ -59,7 +78,7 @@ function DashboardPage() {
         </div>
 
         {/* Grid de Métricas Dinámicas */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
             <p className="text-slate-400 text-sm font-medium">
               Tickets Totales
@@ -78,6 +97,74 @@ function DashboardPage() {
             <p className="text-emerald-400 text-sm font-medium">Resueltos</p>
             <p className="text-3xl font-bold mt-2 text-white">{resueltos}</p>
           </div>
+        </div>
+
+        {/* Desglose por categoría: solo aparecen las que ya tienen tickets */}
+        <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6 mb-8">
+          <h2 className="font-semibold text-white">Tickets por categoría</h2>
+          <p className="text-slate-500 text-xs mt-0.5 mb-5">
+            Proporción de solicitudes abiertas y resueltas por tipo de incidente
+          </p>
+
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array(3)
+                .fill(0)
+                .map((_, idx) => (
+                  <div key={idx} className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-40" />
+                    <Skeleton className="h-2 w-full rounded-full" />
+                  </div>
+                ))}
+            </div>
+          ) : metricasPorCategoria.length === 0 ? (
+            <p className="text-slate-500 text-sm text-center py-4">
+              Aún no hay tickets para desglosar por categoría.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {metricasPorCategoria.map((cat) => {
+                const pctAbiertos =
+                  cat.total > 0 ? (cat.abiertos / cat.total) * 100 : 0;
+                const pctResueltos =
+                  cat.total > 0 ? (cat.resueltos / cat.total) * 100 : 0;
+
+                return (
+                  <div key={cat.categoria}>
+                    <div className="flex items-center justify-between mb-1.5 gap-3">
+                      <span className="text-sm text-slate-300 flex items-center gap-2 shrink-0">
+                        <span aria-hidden="true">{cat.icono}</span>
+                        {cat.label}
+                      </span>
+                      <span className="text-xs text-slate-500 text-right">
+                        <span className="text-slate-400 font-medium">
+                          {cat.total}
+                        </span>{" "}
+                        total ·{" "}
+                        <span className="text-amber-400">
+                          {cat.abiertos} abiertos
+                        </span>{" "}
+                        ·{" "}
+                        <span className="text-emerald-400">
+                          {cat.resueltos} resueltos
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex">
+                      <div
+                        className="h-full bg-amber-500/70"
+                        style={{ width: `${pctAbiertos}%` }}
+                      />
+                      <div
+                        className="h-full bg-emerald-500/70"
+                        style={{ width: `${pctResueltos}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* BOTONERA DE PESTAÑAS (TABS) */}

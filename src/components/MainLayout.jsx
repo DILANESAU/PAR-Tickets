@@ -1,16 +1,20 @@
 import React from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { cerrarSesion } from "../services/ticketService";
 
 function MainLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path) => location.pathname === path;
 
+  const handleCerrarSesion = () => {
+    cerrarSesion(); // borra token_soporte y usuario_nombre de localStorage
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="flex h-screen bg-slate-950 font-sans text-slate-100 overflow-hidden">
-      {/* 2. Inyectar el contenedor de notificaciones en modo oscuro */}
-      <Toaster theme="dark" position="bottom-right" richColors />
       {/* Barra Lateral (Sidebar) */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
         {/* Logo / Título */}
@@ -50,12 +54,12 @@ function MainLayout() {
           <button className="flex items-center w-full px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-colors cursor-pointer mb-2">
             <span className="mr-3">⚙️</span> Configuración
           </button>
-          <Link
-            to="/"
-            className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-red-950/30 rounded-xl transition-colors"
+          <button
+            onClick={handleCerrarSesion}
+            className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
           >
             <span className="mr-3">🚪</span> Cerrar Sesión
-          </Link>
+          </button>
         </div>
       </aside>
 
