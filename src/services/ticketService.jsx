@@ -76,6 +76,13 @@ export const cerrarSesion = () => {
 // un Técnico vs. un Cliente, sin tener que decodificar el JWT en el front.
 export const esTecnico = () => localStorage.getItem("usuario_rol") === "Tecnico";
 
+// Para mostrar "sesión iniciada como X" en el sidebar — antes siempre decía
+// "Soporte IT" fijo, sin importar quién había entrado.
+export const obtenerUsuarioActual = () => ({
+  nombre: localStorage.getItem("usuario_nombre"),
+  rol: localStorage.getItem("usuario_rol"),
+});
+
 export const obtenerPerfil = async () => {
   try {
     const respuesta = await api.get("/auth/perfil");

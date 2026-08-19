@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { cerrarSesion, esTecnico } from "../services/ticketService";
+import {
+  cerrarSesion,
+  esTecnico,
+  obtenerUsuarioActual,
+} from "../services/ticketService";
 import { crearConexionTicketHub } from "../services/Signalservice";
 import {
   notificacionesSoportadas,
@@ -100,6 +104,8 @@ function MainLayout() {
     navigate("/login", { replace: true });
   };
 
+  const usuario = obtenerUsuarioActual();
+
   const enlaces = [
     { to: "/dashboard", icono: "📊", label: "Panel Principal" },
     { to: "/historial", icono: "📋", label: "Mis Tickets" },
@@ -167,6 +173,29 @@ function MainLayout() {
             </>
           )}
         </nav>
+
+        {/* Sesión iniciada como... — antes el sidebar solo decía "Soporte IT"
+            fijo arriba, sin ninguna señal de qué usuario había entrado. */}
+        {usuario.nombre && (
+          <Link
+            to="/perfil"
+            className="mx-4 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors"
+          >
+            <div className="w-9 h-9 rounded-full bg-blue-900/40 border border-blue-800/50 flex items-center justify-center shrink-0">
+              <span className="text-blue-400 text-sm font-bold">
+                {usuario.nombre.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {usuario.nombre}
+              </p>
+              <p className="text-xs text-slate-400">
+                {usuario.rol === "Tecnico" ? "Técnico" : "Cliente"}
+              </p>
+            </div>
+          </Link>
+        )}
 
         {/* Footer del Sidebar (Perfil y Salir) */}
         <div className="p-4 border-t border-slate-800">
