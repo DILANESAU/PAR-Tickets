@@ -53,6 +53,57 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
     setDatosAdicionales((prev) => ({ ...prev, [key]: valor }));
   };
 
+  // Agrupa los campos del incidente por `seccion` (ej. "Dirección",
+  // "Contacto") para no mostrar un solo formulario interminable en
+  // incidentes con muchos campos (Producto tiene 18). Los campos sin
+  // `seccion` son los principales y van siempre visibles; el resto se
+  // muestra en bloques colapsables.
+  const gruposCampos = [];
+  if (camposIncidente) {
+    const indicePorSeccion = new Map();
+    for (const campo of camposIncidente) {
+      const seccion = campo.seccion ?? null;
+      if (!indicePorSeccion.has(seccion)) {
+        indicePorSeccion.set(seccion, []);
+        gruposCampos.push([seccion, indicePorSeccion.get(seccion)]);
+      }
+      indicePorSeccion.get(seccion).push(campo);
+    }
+  }
+
+  const renderCampo = (campo) => (
+    <div key={campo.key}>
+      <label className="block text-xs font-medium text-slate-400 mb-1">
+        {campo.label}
+      </label>
+      {campo.tipo === "select" ? (
+        <select
+          value={datosAdicionales[campo.key] || ""}
+          onChange={(e) =>
+            handleCambioCampoAdicional(campo.key, e.target.value)
+          }
+          className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        >
+          <option value="">Selecciona...</option>
+          {campo.opciones.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={campo.tipo === "date" ? "date" : "text"}
+          value={datosAdicionales[campo.key] || ""}
+          onChange={(e) =>
+            handleCambioCampoAdicional(campo.key, e.target.value)
+          }
+          className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+      )}
+    </div>
+  );
+
   // Solo para mostrar en pantalla: el slug real (ej. "erp_catalogo") se ve feo,
   // así que mostramos su label ("ERP - Catálogo"). Lo que se manda al backend
   // sigue siendo el slug, guardado en el estado `categoria`.
@@ -177,52 +228,45 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
               </div>
             </div>
 
-            {/* CAMPOS ESPECÍFICOS DEL INCIDENTE (dinámicos según lo elegido arriba) */}
+            {/* CAMPOS ESPECÍFICOS DEL INCIDENTE (dinámicos según lo elegido arriba),
+                agrupados en secciones para que formularios largos (ej. Producto,
+                18 campos) no se sientan un solo bloque interminable */}
             {camposIncidente && camposIncidente.length > 0 && (
               <div className="space-y-4 border-t border-slate-800 pt-5">
                 <p className="text-sm font-medium text-slate-300">
                   Datos para "{asuntoSeleccionado}"
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {camposIncidente.map((campo) => (
-                    <div key={campo.key}>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
-                        {campo.label}
-                      </label>
-                      {campo.tipo === "select" ? (
-                        <select
-                          value={datosAdicionales[campo.key] || ""}
-                          onChange={(e) =>
-                            handleCambioCampoAdicional(
-                              campo.key,
-                              e.target.value,
-                            )
-                          }
-                          className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        >
-                          <option value="">Selecciona...</option>
-                          {campo.opciones.map((opcion) => (
-                            <option key={opcion} value={opcion}>
-                              {opcion}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={campo.tipo === "date" ? "date" : "text"}
-                          value={datosAdicionales[campo.key] || ""}
-                          onChange={(e) =>
-                            handleCambioCampoAdicional(
-                              campo.key,
-                              e.target.value,
-                            )
-                          }
-                          className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
-                      )}
+
+                {gruposCampos.map(([seccion, campos]) =>
+                  seccion ? (
+                    <details
+                      key={seccion}
+                      className="group rounded-xl border border-slate-800 bg-slate-950/40"
+                    >
+                      <summary className="cursor-pointer select-none list-none px-3 py-2.5 flex items-center justify-between text-sm font-medium text-slate-300 hover:text-white">
+                        <span>
+                          {seccion}{" "}
+                          <span className="text-slate-500 font-normal">
+                            ({campos.length})
+                          </span>
+                        </span>
+                        <span className="text-slate-500 transition-transform group-open:rotate-90">
+                          ›
+                        </span>
+                      </summary>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-3 pb-4">
+                        {campos.map(renderCampo)}
+                      </div>
+                    </details>
+                  ) : (
+                    <div
+                      key="__principal"
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                    >
+                      {campos.map(renderCampo)}
                     </div>
-                  ))}
-                </div>
+                  ),
+                )}
               </div>
             )}
 
@@ -230,7 +274,7 @@ function NuevoTicketModal({ isOpen, onClose, onTicketCreado }) {
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">
                 Detalles adicionales{" "}
-                <span className="text-slate-500 text-xs font-normal">
+                <span className="text-slate-400 text-xs font-normal">
                   (Opcional)
                 </span>
               </label>

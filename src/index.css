@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+/* Foco visible consistente para navegación por teclado. Antes solo los
+   inputs de formulario tenían anillo de foco (vía focus:ring en su propio
+   className) — botones y links no tenían ninguno, lo que hace imposible
+   saber en qué elemento estás parado usando solo el teclado. Esto se
+   aplica a toda la app desde un solo lugar en vez de tener que agregarlo
+   className por className. */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-blue-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}

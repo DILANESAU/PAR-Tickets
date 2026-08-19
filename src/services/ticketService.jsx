@@ -58,6 +58,7 @@ export const iniciarSesion = async (correo, password) => {
     if (respuesta.data.token) {
       localStorage.setItem("token_soporte", respuesta.data.token);
       localStorage.setItem("usuario_nombre", respuesta.data.usuario.nombre);
+      localStorage.setItem("usuario_rol", respuesta.data.usuario.rol);
     }
     return respuesta.data;
   } catch (error) {
@@ -68,6 +69,184 @@ export const iniciarSesion = async (correo, password) => {
 export const cerrarSesion = () => {
   localStorage.removeItem("token_soporte");
   localStorage.removeItem("usuario_nombre");
+  localStorage.removeItem("usuario_rol");
+};
+
+// El sidebar y las rutas de gestión lo usan para decidir qué mostrarle a
+// un Técnico vs. un Cliente, sin tener que decodificar el JWT en el front.
+export const esTecnico = () => localStorage.getItem("usuario_rol") === "Tecnico";
+
+// Para mostrar "sesión iniciada como X" en el sidebar — antes siempre decía
+// "Soporte IT" fijo, sin importar quién había entrado.
+export const obtenerUsuarioActual = () => ({
+  nombre: localStorage.getItem("usuario_nombre"),
+  rol: localStorage.getItem("usuario_rol"),
+});
+
+export const obtenerPerfil = async () => {
+  try {
+    const respuesta = await api.get("/auth/perfil");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const cambiarPassword = async (passwordActual, passwordNueva) => {
+  try {
+    const respuesta = await api.put("/auth/password", {
+      passwordActual,
+      passwordNueva,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// --- FUNCIONES DE GESTIÓN (solo Técnico) ---
+export const obtenerUsuarios = async () => {
+  try {
+    const respuesta = await api.get("/usuarios");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const asignarSucursal = async (usuarioId, sucursalId) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${usuarioId}/sucursal`, {
+      sucursalId,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerSucursales = async (incluirInactivas = false) => {
+  try {
+    const respuesta = await api.get("/sucursales", {
+      params: { incluirInactivas },
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const crearSucursal = async (numeroTienda, nombre, seccion, empresaId) => {
+  try {
+    const respuesta = await api.post("/sucursales", {
+      numeroTienda,
+      nombre,
+      seccion: seccion || null,
+      empresaId,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const editarSucursal = async (
+  id,
+  numeroTienda,
+  nombre,
+  seccion,
+  empresaId,
+) => {
+  try {
+    const respuesta = await api.put(`/sucursales/${id}`, {
+      numeroTienda,
+      nombre,
+      seccion: seccion || null,
+      empresaId,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const cambiarEstadoSucursal = async (id, activa) => {
+  try {
+    const respuesta = await api.put(`/sucursales/${id}/estado`, { activa });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerEmpresas = async () => {
+  try {
+    const respuesta = await api.get("/empresas");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const registrarUsuario = async (nombre, correo, password, rol) => {
+  try {
+    const respuesta = await api.post("/auth/registro", {
+      nombre,
+      correo,
+      password,
+      rol,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const editarUsuario = async (id, nombre, rol) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${id}`, { nombre, rol });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const resetearPasswordUsuario = async (id, passwordNueva) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${id}/password`, {
+      passwordNueva,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const cambiarEstadoUsuario = async (id, activo) => {
+  try {
+    const respuesta = await api.put(`/usuarios/${id}/estado`, { activo });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerAuditoria = async (limite = 100) => {
+  try {
+    const respuesta = await api.get("/auditoria", { params: { limite } });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerMetricas = async () => {
+  try {
+    const respuesta = await api.get("/tickets/metricas");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 // --- FUNCIONES DE TICKETS ---
@@ -112,6 +291,22 @@ export const crearTicket = async (datosTicket) => {
 export const cerrarTicketApi = async (id) => {
   try {
     const respuesta = await api.put(`/tickets/${id}/cerrar`);
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// El backend espera el nombre del técnico como string plano en el body
+// (no un objeto), así que se manda ya serializado con el content-type
+// explícito para que ASP.NET lo lea como [FromBody] string.
+export const asignarTicket = async (id, tecnicoAsignado) => {
+  try {
+    const respuesta = await api.put(
+      `/tickets/${id}/asignar`,
+      JSON.stringify(tecnicoAsignado),
+      { headers: { "Content-Type": "application/json" } },
+    );
     return respuesta.data;
   } catch (error) {
     throw error;

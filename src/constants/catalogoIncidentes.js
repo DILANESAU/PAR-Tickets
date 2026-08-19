@@ -7,15 +7,23 @@
 // que ya usa el negocio para altas/modificaciones/bajas en Intelisis. Se
 // comparten entre varios incidentes (ej. Acreedor y Deudor Diverso usan los
 // mismos campos que Proveedor) para no repetir la lista.
+// `seccion` agrupa visualmente los campos en el formulario (ver
+// NuevoTicketModal) para que incidentes con muchos campos no se sientan un
+// solo formulario interminable — cada sección se puede colapsar aparte.
 const CAMPOS_DIRECCION = [
-  { key: "direccion", label: "Dirección (calle)" },
-  { key: "noExt", label: "No. Exterior" },
-  { key: "noInt", label: "No. Interior" },
-  { key: "colonia", label: "Colonia" },
-  { key: "poblacion", label: "Población" },
-  { key: "estado", label: "Estado" },
-  { key: "pais", label: "País" },
-  { key: "cp", label: "C.P." },
+  { key: "direccion", label: "Dirección (calle)", seccion: "Dirección" },
+  { key: "noExt", label: "No. Exterior", seccion: "Dirección" },
+  { key: "noInt", label: "No. Interior", seccion: "Dirección" },
+  { key: "colonia", label: "Colonia", seccion: "Dirección" },
+  { key: "poblacion", label: "Población", seccion: "Dirección" },
+  { key: "estado", label: "Estado", seccion: "Dirección" },
+  { key: "pais", label: "País", seccion: "Dirección" },
+  { key: "cp", label: "C.P.", seccion: "Dirección" },
+];
+
+const CAMPOS_CONTACTO = [
+  { key: "telefono", label: "Teléfono", seccion: "Contacto" },
+  { key: "correo", label: "Correo", seccion: "Contacto" },
 ];
 
 const CAMPOS_TIPO_OPERACION = [
@@ -35,8 +43,7 @@ const CAMPOS_EMPLEADO = [
   { key: "nombre", label: "Nombre completo" },
   { key: "rfc", label: "RFC" },
   ...CAMPOS_DIRECCION,
-  { key: "telefono", label: "Teléfono" },
-  { key: "correo", label: "Correo" },
+  ...CAMPOS_CONTACTO,
   { key: "fechaIngreso", label: "Fecha de ingreso", tipo: "date" },
   { key: "puesto", label: "Puesto" },
   { key: "chofer", label: "Chofer (tipo de licencia, si aplica)" },
@@ -50,8 +57,7 @@ const CAMPOS_PROVEEDOR = [
   { key: "nombre", label: "Nombre o razón social" },
   { key: "rfc", label: "RFC" },
   ...CAMPOS_DIRECCION,
-  { key: "telefono", label: "Teléfono" },
-  { key: "correo", label: "Correo" },
+  ...CAMPOS_CONTACTO,
   { key: "fechaIngreso", label: "Fecha de ingreso", tipo: "date" },
   { key: "razon", label: "Razón" },
   { key: "sucursal", label: "Sucursal" },
@@ -64,10 +70,9 @@ const CAMPOS_CLIENTE = [
   { key: "nombre", label: "Nombre o razón social" },
   { key: "rfc", label: "RFC" },
   ...CAMPOS_DIRECCION,
-  { key: "telefono", label: "Teléfono" },
-  { key: "correo", label: "Correo" },
-  { key: "telefono2", label: "Teléfono 2" },
-  { key: "correo2", label: "Correo 2" },
+  ...CAMPOS_CONTACTO,
+  { key: "telefono2", label: "Teléfono 2", seccion: "Contacto" },
+  { key: "correo2", label: "Correo 2", seccion: "Contacto" },
   { key: "condicionesPago", label: "Condiciones de pago" },
   { key: "limiteCredito", label: "Límite de crédito" },
   { key: "listaPrecios", label: "Lista de precios" },
@@ -126,9 +131,8 @@ const CAMPOS_SUCURSAL = [
   { key: "razon", label: "Razón" },
   { key: "rfc", label: "RFC" },
   ...CAMPOS_DIRECCION,
-  { key: "telefono", label: "Teléfono" },
-  { key: "correo", label: "Correo" },
-  { key: "nombreContacto", label: "Nombre y contacto" },
+  ...CAMPOS_CONTACTO,
+  { key: "nombreContacto", label: "Nombre y contacto", seccion: "Contacto" },
 ];
 
 // PRECIOS

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Skeleton from "../components/Skeleton";
+import { PrioridadBadge, EstadoBadge } from "../components/Badges";
 import { obtenerMisTickets } from "../services/ticketService";
 
 function HistorialPage() {
@@ -53,7 +54,7 @@ function HistorialPage() {
                   </div>
                 ))
             ) : tickets.length === 0 ? (
-              <div className="p-10 text-center text-slate-500 text-sm">
+              <div className="p-10 text-center text-slate-400 text-sm">
                 Todavía no has creado ningún ticket.
               </div>
             ) : (
@@ -68,7 +69,7 @@ function HistorialPage() {
                       <span className="text-xs font-mono text-blue-400 font-medium bg-blue-950 border border-blue-900 px-2 py-0.5 rounded">
                         TK-{ticket.id}
                       </span>
-                      <span className="text-slate-500 text-xs">
+                      <span className="text-slate-400 text-xs">
                         {new Date(ticket.fechaCreacion).toLocaleDateString()}
                       </span>
                     </div>
@@ -78,28 +79,8 @@ function HistorialPage() {
                   </div>
 
                   <div className="flex items-center space-x-4 self-end sm:self-auto">
-                    <span
-                      className={`text-xs px-2.5 py-1 rounded-md font-medium border ${
-                        ticket.prioridad === "Alta" ||
-                        ticket.prioridad === "Critica"
-                          ? "bg-red-950/40 text-red-400 border-red-900/50"
-                          : ticket.prioridad === "Media"
-                            ? "bg-amber-950/40 text-amber-400 border-amber-900/50"
-                            : "bg-slate-800 text-slate-400 border-slate-700"
-                      }`}
-                    >
-                      {ticket.prioridad}
-                    </span>
-
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full font-semibold border ${
-                        ticket.estado === "Cerrado"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      }`}
-                    >
-                      {ticket.estado}
-                    </span>
+                    <PrioridadBadge prioridad={ticket.prioridad} />
+                    <EstadoBadge estado={ticket.estado} />
                   </div>
                 </Link>
               ))
