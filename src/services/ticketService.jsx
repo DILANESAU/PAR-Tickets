@@ -70,6 +70,27 @@ export const cerrarSesion = () => {
   localStorage.removeItem("usuario_nombre");
 };
 
+export const obtenerPerfil = async () => {
+  try {
+    const respuesta = await api.get("/auth/perfil");
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const cambiarPassword = async (passwordActual, passwordNueva) => {
+  try {
+    const respuesta = await api.put("/auth/password", {
+      passwordActual,
+      passwordNueva,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // --- FUNCIONES DE TICKETS ---
 export const obtenerTickets = async () => {
   try {

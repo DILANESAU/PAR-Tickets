@@ -72,9 +72,12 @@ function MainLayout() {
 
         {/* Footer del Sidebar (Perfil y Salir) */}
         <div className="p-4 border-t border-slate-800">
-          <button className="flex items-center w-full px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-colors cursor-pointer mb-2">
+          <Link
+            to="/perfil"
+            className={`flex items-center w-full px-4 py-3 rounded-xl transition-colors mb-2 ${isActive("/perfil") ? "bg-blue-600/10 text-blue-400 font-medium" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+          >
             <span className="mr-3">⚙️</span> Configuración
-          </button>
+          </Link>
           <button
             onClick={handleCerrarSesion}
             className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"

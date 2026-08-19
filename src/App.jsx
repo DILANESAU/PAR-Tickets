@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage"; // <-- Importa la nueva página
 import RutaProtegida from "./components/RutaProtegida";
 import HistorialPage from "./pages/HistorialPage";
 import WikiPage from "./pages/WikiPage";
+import PerfilPage from "./pages/PerfilPage";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
             <Route path="/ticket/:id" element={<TicketDetailPage />} />
             <Route path="/historial" element={<HistorialPage />} />
             <Route path="/wiki" element={<WikiPage />} />
+            <Route path="/perfil" element={<PerfilPage />} />
           </Route>
         </Route>
       </Routes>
