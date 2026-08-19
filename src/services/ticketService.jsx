@@ -1,8 +1,13 @@
 // src/services/ticketService.js
 import axios from "axios";
 
+// VITE_API_URL se define en .env (desarrollo) o .env.production (build real).
+// Si no está definida, cae en localhost para no romper el arranque en dev.
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5250/api";
+
 const api = axios.create({
-  baseURL: "http://localhost:5250/api",
+  baseURL: API_BASE_URL,
 });
 
 api.interceptors.request.use(
@@ -14,6 +19,34 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  },
+);
+
+// Si el backend responde 401, el token ya no sirve (expiró, o el usuario fue
+// deshabilitado). Excepción: el propio POST /auth/login también puede devolver
+// 401 cuando la contraseña es incorrecta, y eso NO es una sesión expirada
+// — ese caso lo maneja LoginPage mostrando el mensaje, no aquí.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const esPeticionDeLogin = error.config?.url?.includes("/auth/login");
+
+    if (error.response?.status === 401 && !esPeticionDeLogin) {
+      localStorage.removeItem("token_soporte");
+      localStorage.removeItem("usuario_nombre");
+
+      if (window.location.pathname !== "/login") {
+        // LoginPage lo lee al montar, para explicarle al usuario por qué
+        // terminó aquí en vez de simplemente aparecer sin dar razón.
+        sessionStorage.setItem(
+          "mensaje_sesion_expirada",
+          "Tu sesión expiró. Inicia sesión de nuevo.",
+        );
+        window.location.href = "/login";
+      }
+    }
+
     return Promise.reject(error);
   },
 );
@@ -47,6 +80,17 @@ export const obtenerTickets = async () => {
   }
 };
 
+export const obtenerMisTickets = async () => {
+  try {
+    const respuesta = await api.get("/tickets", {
+      params: { soloMios: true },
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const obtenerTicketPorId = async (id) => {
   try {
     const respuesta = await api.get(`/tickets/${id}`);
@@ -73,3 +117,28 @@ export const cerrarTicketApi = async (id) => {
     throw error;
   }
 };
+
+// --- FUNCIONES DE MENSAJES (chat del ticket) ---
+export const obtenerMensajes = async (ticketId) => {
+  try {
+    const respuesta = await api.get(`/tickets/${ticketId}/mensajes`);
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const enviarMensaje = async (ticketId, texto) => {
+  try {
+    const respuesta = await api.post(`/tickets/${ticketId}/mensajes`, {
+      texto,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// La URL del Hub de SignalR vive en el mismo servidor que la API,
+// solo sin el prefijo /api.
+export const HUB_URL = API_BASE_URL.replace(/\/api\/?$/, "") + "/ticketHub";

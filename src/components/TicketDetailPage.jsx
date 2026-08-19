@@ -1,13 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { obtenerTicketPorId, cerrarTicketApi } from "../services/ticketService";
+import {
+  obtenerTicketPorId,
+  cerrarTicketApi,
+  obtenerMensajes,
+  enviarMensaje,
+} from "../services/ticketService";
+import { crearConexionTicketHub } from "../services/Signalservice";
 import { toast } from "sonner";
+import { catalogoIncidentes } from "../constants/catalogoIncidentes";
 
 function TicketDetailPage() {
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModifying, setIsModifying] = useState(false);
+
+  const [mensajes, setMensajes] = useState([]);
+  const [textoMensaje, setTextoMensaje] = useState("");
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false);
+  const conexionRef = useRef(null);
 
   useEffect(() => {
     const cargarTicket = async () => {
@@ -22,6 +34,91 @@ function TicketDetailPage() {
     };
     cargarTicket();
   }, [id]);
+
+  // El backend guarda DatosAdicionales como JSON crudo; lo parseamos y le
+  // ponemos las etiquetas legibles del catálogo (en vez de las keys internas).
+  const datosAdicionales = React.useMemo(() => {
+    if (!ticket?.datosAdicionales) return null;
+
+    let datos;
+    try {
+      datos = JSON.parse(ticket.datosAdicionales);
+    } catch {
+      return null;
+    }
+
+    const incidente = catalogoIncidentes.find(
+      (i) => i.asunto === ticket.asunto,
+    );
+
+    return Object.entries(datos)
+      .filter(([, valor]) => valor)
+      .map(([key, valor]) => ({
+        label: incidente?.campos?.find((c) => c.key === key)?.label || key,
+        valor,
+      }));
+  }, [ticket]);
+
+  // Historial de mensajes + conexión en vivo por SignalR. Se reconecta si
+  // cambia el id del ticket (ej. navegaste de un ticket a otro).
+  useEffect(() => {
+    let activo = true;
+
+    const cargarMensajes = async () => {
+      try {
+        const datos = await obtenerMensajes(id);
+        if (activo) setMensajes(datos);
+      } catch (error) {
+        toast.error("No se pudieron cargar los mensajes.");
+      }
+    };
+    cargarMensajes();
+
+    const conexion = crearConexionTicketHub();
+    conexionRef.current = conexion;
+
+    conexion.on("NuevoMensaje", (mensaje) => {
+      // Evita duplicar el mensaje que uno mismo acaba de enviar
+      // (ya se agregó "optimistamente" al enviarlo).
+      setMensajes((prev) =>
+        prev.some((m) => m.id === mensaje.id) ? prev : [...prev, mensaje],
+      );
+    });
+
+    conexion
+      .start()
+      .then(() => conexion.invoke("UnirseATicket", Number(id)))
+      .catch(() => {
+        // Si falla la conexión en vivo, el chat sigue funcionando por
+        // petición normal (POST), solo no se actualiza en tiempo real.
+        console.error("No se pudo conectar al chat en vivo.");
+      });
+
+    return () => {
+      activo = false;
+      if (conexion.state === "Connected") {
+        conexion.invoke("SalirDeTicket", Number(id)).catch(() => {});
+      }
+      conexion.stop();
+    };
+  }, [id]);
+
+  const handleEnviarMensaje = async (e) => {
+    e.preventDefault();
+    const texto = textoMensaje.trim();
+    if (!texto) return;
+
+    setEnviandoMensaje(true);
+    try {
+      const mensajeCreado = await enviarMensaje(id, texto);
+      setMensajes((prev) => [...prev, mensajeCreado]);
+      setTextoMensaje("");
+    } catch (error) {
+      toast.error("No se pudo enviar el mensaje.");
+    } finally {
+      setEnviandoMensaje(false);
+    }
+  };
 
   const handleCerrarTicket = async () => {
     setIsModifying(true);
@@ -163,44 +260,88 @@ function TicketDetailPage() {
           </p>
         </div>
 
-        {/* --- 4. SECCIÓN DE MENSAJES (Placeholder para el futuro) --- */}
+        {/* --- 3.5. DATOS ESTRUCTURADOS DEL INCIDENTE (si el tipo los pide) --- */}
+        {datosAdicionales && datosAdicionales.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 mb-6 shadow-sm">
+            <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">
+              Datos de la solicitud
+            </h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+              {datosAdicionales.map(({ label, valor }) => (
+                <div key={label}>
+                  <dt className="text-xs text-slate-500">{label}</dt>
+                  <dd className="text-sm text-slate-200 font-medium">
+                    {valor}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        {/* --- 4. SECCIÓN DE MENSAJES --- */}
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-white mb-4">
             Actualizaciones
           </h3>
 
           <div className="space-y-4">
-            {/* Mensaje Automático */}
-            <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-5 flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-blue-900/30 border border-blue-800/50 flex items-center justify-center shrink-0">
-                <span className="text-blue-400 text-sm font-bold">IT</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-slate-200">
-                    Sistema de Soporte
+            {mensajes.length === 0 && (
+              <p className="text-slate-500 text-sm text-center py-4">
+                Aún no hay mensajes en este ticket.
+              </p>
+            )}
+
+            {mensajes.map((mensaje) => (
+              <div
+                key={mensaje.id}
+                className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-5 flex gap-4"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-900/30 border border-blue-800/50 flex items-center justify-center shrink-0">
+                  <span className="text-blue-400 text-sm font-bold">
+                    {mensaje.remitente?.charAt(0)?.toUpperCase() || "?"}
                   </span>
-                  <span className="text-xs text-slate-500">Justo ahora</span>
                 </div>
-                <p className="text-slate-400 text-sm">
-                  Tu ticket ha sido recibido y está en la cola de asignación. Un
-                  técnico lo revisará pronto.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-slate-200">
+                      {mensaje.remitente}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {new Date(mensaje.fechaEnvio).toLocaleString([], {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-slate-400 text-sm whitespace-pre-wrap">
+                    {mensaje.texto}
+                  </p>
+                </div>
               </div>
-            </div>
+            ))}
 
             {/* Input para responder (Deshabilitado si está cerrado) */}
             {ticket.estado !== "Cerrado" ? (
-              <div className="mt-6 flex gap-3">
+              <form onSubmit={handleEnviarMensaje} className="mt-6 flex gap-3">
                 <input
                   type="text"
+                  value={textoMensaje}
+                  onChange={(e) => setTextoMensaje(e.target.value)}
+                  maxLength={2000}
                   placeholder="Escribe un mensaje al técnico..."
                   className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 />
-                <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-lg shadow-blue-900/20">
-                  Enviar
+                <button
+                  type="submit"
+                  disabled={enviandoMensaje || !textoMensaje.trim()}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-lg shadow-blue-900/20"
+                >
+                  {enviandoMensaje ? "Enviando..." : "Enviar"}
                 </button>
-              </div>
+              </form>
             ) : (
               <div className="mt-6 text-center p-4 bg-slate-900/30 border border-slate-800/30 rounded-xl">
                 <p className="text-slate-500 text-sm">

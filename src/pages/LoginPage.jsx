@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { iniciarSesion } from "../services/ticketService";
 
@@ -8,6 +8,21 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Si el interceptor de axios nos mandó para acá por un token vencido,
+  // aquí explicamos por qué en vez de solo aparecer en el login sin razón.
+  useEffect(() => {
+    const mensaje = sessionStorage.getItem("mensaje_sesion_expirada");
+    if (mensaje) {
+      toast.info(mensaje);
+      sessionStorage.removeItem("mensaje_sesion_expirada");
+    }
+  }, []);
+
+  // Si RutaProtegida nos mandó para acá porque no había token, aquí viene
+  // guardada la página a la que el usuario quería entrar originalmente.
+  const destino = location.state?.from?.pathname || "/dashboard";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,9 +32,17 @@ function LoginPage() {
       await iniciarSesion(correo, password);
 
       toast.success("Bienvenido al sistema");
-      navigate("/dashboard");
+      navigate(destino, { replace: true });
     } catch (error) {
-      toast.error("Correo o contraseña incorrectos");
+      // El backend ya manda mensajes específicos (credenciales inválidas,
+      // cuenta bloqueada temporalmente, etc.) — se los mostramos tal cual.
+      const mensaje =
+        error.response?.data || "No se pudo iniciar sesión. Intenta de nuevo.";
+      toast.error(
+        typeof mensaje === "string"
+          ? mensaje
+          : "Correo o contraseña incorrectos",
+      );
       console.error(error);
     } finally {
       setIsSubmitting(false);
