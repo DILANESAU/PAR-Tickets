@@ -127,6 +127,33 @@ export const obtenerSucursales = async () => {
   }
 };
 
+export const crearSucursal = async (numeroTienda, nombre, seccion) => {
+  try {
+    const respuesta = await api.post("/sucursales", {
+      numeroTienda,
+      nombre,
+      seccion: seccion || null,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const registrarUsuario = async (nombre, correo, password, rol) => {
+  try {
+    const respuesta = await api.post("/auth/registro", {
+      nombre,
+      correo,
+      password,
+      rol,
+    });
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const obtenerAuditoria = async (limite = 100) => {
   try {
     const respuesta = await api.get("/auditoria", { params: { limite } });

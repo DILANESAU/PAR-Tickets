@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Skeleton from "../components/Skeleton";
+import NuevoUsuarioModal from "../components/NuevoUsuarioModal";
+import NuevaSucursalModal from "../components/NuevaSucursalModal";
 import {
   obtenerUsuarios,
   obtenerSucursales,
@@ -12,6 +14,9 @@ function GestionUsuariosPage() {
   const [sucursales, setSucursales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [guardandoId, setGuardandoId] = useState(null);
+
+  const [modalUsuarioAbierto, setModalUsuarioAbierto] = useState(false);
+  const [modalSucursalAbierto, setModalSucursalAbierto] = useState(false);
 
   const cargarDatos = async () => {
     setIsLoading(true);
@@ -53,16 +58,33 @@ function GestionUsuariosPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <main className="max-w-5xl mx-auto p-6 sm:p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Gestión de Usuarios
-          </h1>
-          <p className="text-slate-400 mt-1 text-sm">
-            Usuarios registrados en tu empresa y su sucursal asignada.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              Gestión de Usuarios
+            </h1>
+            <p className="text-slate-400 mt-1 text-sm">
+              Usuarios registrados en tu empresa y su sucursal asignada.
+            </p>
+          </div>
+          <div className="flex gap-3 self-start sm:self-auto">
+            <button
+              onClick={() => setModalSucursalAbierto(true)}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors cursor-pointer text-sm"
+            >
+              + Nueva Sucursal
+            </button>
+            <button
+              onClick={() => setModalUsuarioAbierto(true)}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer text-sm shadow-lg shadow-blue-900/20"
+            >
+              + Nuevo Usuario
+            </button>
+          </div>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+        {/* --- TABLA DE USUARIOS --- */}
+        <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl mb-6">
           {isLoading ? (
             <div className="p-6 space-y-4">
               {Array(4)
@@ -124,7 +146,54 @@ function GestionUsuariosPage() {
             </div>
           )}
         </div>
+
+        {/* --- SUCURSALES DE LA EMPRESA --- */}
+        <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6">
+          <h2 className="font-semibold text-white mb-4">Sucursales</h2>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array(3)
+                .fill(0)
+                .map((_, idx) => (
+                  <Skeleton key={idx} className="h-5 w-full" />
+                ))}
+            </div>
+          ) : sucursales.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-4">
+              Todavía no hay sucursales dadas de alta.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {sucursales.map((sucursal) => (
+                <div
+                  key={sucursal.id}
+                  className="flex items-center justify-between text-sm bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-2.5"
+                >
+                  <span className="text-slate-200 font-medium">
+                    {sucursal.nombre}
+                  </span>
+                  <span className="text-slate-400 text-xs">
+                    #{sucursal.numeroTienda}
+                    {sucursal.seccion ? ` · ${sucursal.seccion}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
+
+      <NuevoUsuarioModal
+        isOpen={modalUsuarioAbierto}
+        onClose={() => setModalUsuarioAbierto(false)}
+        onUsuarioCreado={cargarDatos}
+      />
+      <NuevaSucursalModal
+        isOpen={modalSucursalAbierto}
+        onClose={() => setModalSucursalAbierto(false)}
+        onSucursalCreada={cargarDatos}
+      />
     </div>
   );
 }
