@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import NuevoTicketModal from "../components/NuevoTicketModal";
 import Skeleton from "../components/Skeleton";
 import { PrioridadBadge, EstadoBadge } from "../components/Badges";
-import { obtenerTickets } from "../services/ticketService";
+import {
+  obtenerTickets,
+  asignarTicket,
+  esTecnico,
+  obtenerUsuarioActual,
+} from "../services/ticketService";
 import { CATEGORIAS } from "../constants/catalogoIncidentes";
 
 function DashboardPage() {
   const [tickets, setTickets] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [tomandoId, setTomandoId] = useState(null);
 
   const [filtroEstado, setFiltroEstado] = useState("Todos");
 
@@ -29,9 +36,30 @@ function DashboardPage() {
     cargarDatos();
   }, []);
 
+  const handleTomarTicket = async (ticketId) => {
+    const { nombre } = obtenerUsuarioActual();
+    setTomandoId(ticketId);
+    try {
+      await asignarTicket(ticketId, nombre);
+      toast.success(`Te asignaste el ticket TK-${ticketId}.`);
+      await cargarDatos();
+    } catch (error) {
+      toast.error("No se pudo tomar el ticket.");
+    } finally {
+      setTomandoId(null);
+    }
+  };
+
   const totalTickets = tickets.length;
   const abiertosOProceso = tickets.filter((t) => t.estado !== "Cerrado").length;
   const resueltos = tickets.filter((t) => t.estado === "Cerrado").length;
+
+  // Cola de trabajo: solo le importa a un Técnico — tickets abiertos que
+  // nadie ha tomado todavía, para poder asignárselos con un clic sin tener
+  // que entrar al detalle de cada uno.
+  const ticketsSinAsignar = tickets.filter(
+    (t) => t.estado !== "Cerrado" && !t.asignadoA,
+  );
 
   // Desglose dinámico: solo se calculan (y se muestran) las categorías que
   // realmente tienen al menos un ticket, ordenadas de la más frecuente a la menos.
@@ -92,6 +120,56 @@ function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* --- COLUMNA PRINCIPAL: filtros + lista de tickets --- */}
           <div className="lg:col-span-2 space-y-6 lg:order-1">
+            {/* COLA SIN ASIGNAR: solo Técnico — tickets abiertos que nadie ha
+                tomado, con un botón para asignárselos sin entrar al detalle. */}
+            {esTecnico() && !isLoading && ticketsSinAsignar.length > 0 && (
+              <div className="bg-amber-950/20 border border-amber-900/40 rounded-2xl overflow-hidden">
+                <div className="p-4 border-b border-amber-900/40 flex items-center justify-between">
+                  <h2 className="font-semibold text-amber-400 flex items-center gap-2">
+                    <span aria-hidden="true">⏳</span> Sin asignar
+                  </h2>
+                  <span className="text-xs text-amber-400/80 font-medium">
+                    {ticketsSinAsignar.length}{" "}
+                    {ticketsSinAsignar.length === 1 ? "ticket" : "tickets"}
+                  </span>
+                </div>
+                <div className="divide-y divide-amber-900/30">
+                  {ticketsSinAsignar.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <Link
+                        to={`/ticket/${ticket.id}`}
+                        className="min-w-0 hover:underline"
+                      >
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-0.5">
+                          <span className="font-mono text-blue-400">
+                            TK-{ticket.id}
+                          </span>
+                          <span>·</span>
+                          <span>{ticket.empresa}</span>
+                        </div>
+                        <p className="text-sm text-white font-medium truncate">
+                          {ticket.asunto}
+                        </p>
+                      </Link>
+                      <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+                        <PrioridadBadge prioridad={ticket.prioridad} />
+                        <button
+                          onClick={() => handleTomarTicket(ticket.id)}
+                          disabled={tomandoId === ticket.id}
+                          className="bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 hover:border-amber-500 disabled:opacity-50 font-medium px-3 py-1.5 rounded-lg transition-all cursor-pointer text-xs"
+                        >
+                          {tomandoId === ticket.id ? "Tomando..." : "Tomar"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* BOTONERA DE PESTAÑAS (TABS), con conteo por estado */}
             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 w-fit">
               {pestañas.map(({ valor, label, total }) => (
@@ -168,6 +246,14 @@ function DashboardPage() {
                               ticket.fechaCreacion,
                             ).toLocaleDateString()}
                           </span>
+                          {esTecnico() && (
+                            <>
+                              <span className="text-slate-700">·</span>
+                              <span className="text-slate-400 text-xs">
+                                {ticket.empresa}
+                              </span>
+                            </>
+                          )}
                         </div>
                         <h3 className="font-medium text-white text-base">
                           {ticket.asunto}
