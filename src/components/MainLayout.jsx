@@ -1,10 +1,83 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { cerrarSesion, esTecnico } from "../services/ticketService";
+import { crearConexionTicketHub } from "../services/Signalservice";
+import {
+  notificacionesSoportadas,
+  permisoNotificaciones,
+  pedirPermisoNotificaciones,
+  mostrarNotificacion,
+} from "../services/Notificaciones";
 
 function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [permisoNotif, setPermisoNotif] = useState(permisoNotificaciones());
+
+  // La conexión de fondo (más abajo) se abre una sola vez al montar, así
+  // que su closure no ve cambios de ruta — se lee la ruta actual desde
+  // esta ref en vez de la variable `location` directamente.
+  const rutaActualRef = useRef(location.pathname);
+  useEffect(() => {
+    rutaActualRef.current = location.pathname;
+  }, [location.pathname]);
+
+  const handlePedirPermiso = async () => {
+    const resultado = await pedirPermisoNotificaciones();
+    setPermisoNotif(resultado);
+    if (resultado === "granted") {
+      toast.success("Notificaciones de escritorio activadas.");
+    } else if (resultado === "denied") {
+      toast.error(
+        "Notificaciones bloqueadas. Actívalas desde los permisos del sitio en tu navegador.",
+      );
+    }
+  };
+
+  // Conexión "de fondo" para avisos, separada de la que abre
+  // TicketDetailPage al ver un ticket específico — esta vive mientras haya
+  // sesión, sin importar en qué página estés, para que te enteres de
+  // tickets/mensajes nuevos aunque no tengas ese ticket abierto.
+  useEffect(() => {
+    const conexion = crearConexionTicketHub();
+
+    conexion.on("RecibirNuevoTicket", (ticket) => {
+      toast.info(`Nuevo ticket: ${ticket.asunto}`, {
+        description: `TK-${ticket.id} · Prioridad ${ticket.prioridad}`,
+      });
+      mostrarNotificacion(
+        "Nuevo ticket de soporte",
+        { body: `TK-${ticket.id} · ${ticket.asunto}` },
+        () => navigate(`/ticket/${ticket.id}`),
+      );
+    });
+
+    conexion.on("NuevoMensajeNotificacion", (aviso) => {
+      // Si ya estás viendo justo ese ticket, TicketDetailPage ya te muestra
+      // el mensaje en el chat — un toast aparte solo sería ruido.
+      if (rutaActualRef.current === `/ticket/${aviso.ticketId}`) return;
+
+      toast.info(`Mensaje nuevo en TK-${aviso.ticketId}`, {
+        description: `${aviso.remitente}: ${aviso.texto}`,
+      });
+      mostrarNotificacion(
+        `${aviso.remitente} respondió`,
+        { body: `TK-${aviso.ticketId} · ${aviso.asunto}` },
+        () => navigate(`/ticket/${aviso.ticketId}`),
+      );
+    });
+
+    conexion.start().catch(() => {
+      console.error("No se pudo conectar el servicio de notificaciones.");
+    });
+
+    return () => {
+      conexion.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // El sidebar es fijo en escritorio, pero en pantallas chicas (celular) se
   // abre como panel deslizante — antes ocupaba 256px sin forma de ocultarlo,
@@ -97,6 +170,14 @@ function MainLayout() {
 
         {/* Footer del Sidebar (Perfil y Salir) */}
         <div className="p-4 border-t border-slate-800">
+          {notificacionesSoportadas() && permisoNotif !== "granted" && (
+            <button
+              onClick={handlePedirPermiso}
+              className="flex items-center w-full px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-colors cursor-pointer mb-2"
+            >
+              <span className="mr-3">🔔</span> Activar notificaciones
+            </button>
+          )}
           <Link
             to="/perfil"
             className={`flex items-center w-full px-4 py-3 rounded-xl transition-colors mb-2 ${isActive("/perfil") ? "bg-blue-600/10 text-blue-400 font-medium" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
