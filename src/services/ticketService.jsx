@@ -193,6 +193,22 @@ export const cerrarTicketApi = async (id) => {
   }
 };
 
+// El backend espera el nombre del técnico como string plano en el body
+// (no un objeto), así que se manda ya serializado con el content-type
+// explícito para que ASP.NET lo lea como [FromBody] string.
+export const asignarTicket = async (id, tecnicoAsignado) => {
+  try {
+    const respuesta = await api.put(
+      `/tickets/${id}/asignar`,
+      JSON.stringify(tecnicoAsignado),
+      { headers: { "Content-Type": "application/json" } },
+    );
+    return respuesta.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // --- FUNCIONES DE MENSAJES (chat del ticket) ---
 export const obtenerMensajes = async (ticketId) => {
   try {

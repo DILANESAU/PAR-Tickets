@@ -3,8 +3,11 @@ import { useParams, Link } from "react-router-dom";
 import {
   obtenerTicketPorId,
   cerrarTicketApi,
+  asignarTicket,
+  obtenerUsuarios,
   obtenerMensajes,
   enviarMensaje,
+  esTecnico,
 } from "../services/ticketService";
 import { crearConexionTicketHub } from "../services/Signalservice";
 import { toast } from "sonner";
@@ -22,6 +25,11 @@ function TicketDetailPage() {
   const [enviandoMensaje, setEnviandoMensaje] = useState(false);
   const conexionRef = useRef(null);
 
+  // Lista de técnicos para el selector de asignación — solo se pide si
+  // quien ve el ticket es técnico (a un Cliente ni le sirve ni tiene acceso).
+  const [tecnicos, setTecnicos] = useState([]);
+  const [isAsignando, setIsAsignando] = useState(false);
+
   useEffect(() => {
     const cargarTicket = async () => {
       try {
@@ -35,6 +43,22 @@ function TicketDetailPage() {
     };
     cargarTicket();
   }, [id]);
+
+  // Solo se carga si quien ve el ticket es técnico — es lo único que
+  // necesita la lista completa de usuarios (para el selector de asignar).
+  useEffect(() => {
+    if (!esTecnico()) return;
+
+    const cargarTecnicos = async () => {
+      try {
+        const usuarios = await obtenerUsuarios();
+        setTecnicos(usuarios.filter((u) => u.rol === "Tecnico"));
+      } catch (error) {
+        // No es crítico: si falla, el selector simplemente sale vacío.
+      }
+    };
+    cargarTecnicos();
+  }, []);
 
   // El backend guarda DatosAdicionales como JSON crudo; lo parseamos y le
   // ponemos las etiquetas legibles del catálogo (en vez de las keys internas).
@@ -121,6 +145,25 @@ function TicketDetailPage() {
     }
   };
 
+  const handleAsignar = async (nombreTecnico) => {
+    if (!nombreTecnico) return;
+
+    setIsAsignando(true);
+    try {
+      const respuesta = await asignarTicket(id, nombreTecnico);
+      setTicket((prev) => ({
+        ...prev,
+        estado: respuesta.ticketActualizado.estado,
+        asignadoA: respuesta.ticketActualizado.asignadoA,
+      }));
+      toast.success(`Ticket asignado a ${nombreTecnico}`);
+    } catch (error) {
+      toast.error("No se pudo asignar el ticket.");
+    } finally {
+      setIsAsignando(false);
+    }
+  };
+
   const handleCerrarTicket = async () => {
     setIsModifying(true);
     try {
@@ -203,10 +246,37 @@ function TicketDetailPage() {
                 minute: "2-digit",
               })}
             </p>
+
+            {/* ASIGNACIÓN: cualquiera ve a quién está asignado; solo un
+                técnico (y con el ticket todavía abierto) puede cambiarlo. */}
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <span className="text-slate-400">Asignado a:</span>
+              {esTecnico() && ticket.estado !== "Cerrado" ? (
+                <select
+                  value={ticket.asignadoA || ""}
+                  disabled={isAsignando}
+                  onChange={(e) => handleAsignar(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 text-white rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    {ticket.asignadoA || "Sin asignar"}
+                  </option>
+                  {tecnicos.map((t) => (
+                    <option key={t.id} value={t.nombre}>
+                      {t.nombre}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-slate-200 font-medium">
+                  {ticket.asignadoA || "Sin asignar"}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* BOTÓN CERRAR */}
-          {ticket.estado !== "Cerrado" && (
+          {/* BOTÓN CERRAR (solo técnico) */}
+          {esTecnico() && ticket.estado !== "Cerrado" && (
             <button
               onClick={handleCerrarTicket}
               disabled={isModifying}
