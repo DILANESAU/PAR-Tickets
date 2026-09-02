@@ -175,11 +175,17 @@ function MainLayout() {
         </nav>
 
         {/* Sesión iniciada como... — antes el sidebar solo decía "Soporte IT"
-            fijo arriba, sin ninguna señal de qué usuario había entrado. */}
+            fijo arriba, sin ninguna señal de qué usuario había entrado.
+            También hace de acceso a Configuración (antes había un botón
+            aparte para lo mismo, redundante con este bloque). */}
         {usuario.nombre && (
           <Link
             to="/perfil"
-            className="mx-4 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors"
+            className={`mx-4 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+              isActive("/perfil")
+                ? "bg-blue-600/10 ring-1 ring-blue-800/50"
+                : "bg-slate-800/50 hover:bg-slate-800"
+            }`}
           >
             <div className="w-9 h-9 rounded-full bg-blue-900/40 border border-blue-800/50 flex items-center justify-center shrink-0">
               <span className="text-blue-400 text-sm font-bold">
@@ -207,12 +213,6 @@ function MainLayout() {
               <span className="mr-3">🔔</span> Activar notificaciones
             </button>
           )}
-          <Link
-            to="/perfil"
-            className={`flex items-center w-full px-4 py-3 rounded-xl transition-colors mb-2 ${isActive("/perfil") ? "bg-blue-600/10 text-blue-400 font-medium" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
-          >
-            <span className="mr-3">⚙️</span> Configuración
-          </Link>
           <button
             onClick={handleCerrarSesion}
             className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"

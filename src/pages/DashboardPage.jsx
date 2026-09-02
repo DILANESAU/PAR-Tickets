@@ -19,6 +19,9 @@ function DashboardPage() {
   const [tomandoId, setTomandoId] = useState(null);
 
   const [filtroEstado, setFiltroEstado] = useState("Todos");
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroEmpresa, setFiltroEmpresa] = useState("Todas");
+  const [filtroPrioridad, setFiltroPrioridad] = useState("Todas");
 
   const cargarDatos = async () => {
     setIsLoading(true);
@@ -79,10 +82,37 @@ function DashboardPage() {
     .filter((c) => c.total > 0)
     .sort((a, b) => b.total - a.total);
 
+  // Empresas presentes en la lista actual — solo un Técnico ve más de una,
+  // así que el filtro de empresa no tiene sentido mostrarlo para un Cliente.
+  const empresasDisponibles = [
+    ...new Set(tickets.map((t) => t.empresa).filter(Boolean)),
+  ].sort();
+
   const ticketsFiltrados = tickets.filter((ticket) => {
-    if (filtroEstado === "Todos") return true;
-    if (filtroEstado === "Pendientes") return ticket.estado !== "Cerrado";
-    return ticket.estado === filtroEstado;
+    if (filtroEstado === "Todos") {
+      // no-op, pasa
+    } else if (filtroEstado === "Pendientes") {
+      if (ticket.estado === "Cerrado") return false;
+    } else if (ticket.estado !== filtroEstado) {
+      return false;
+    }
+
+    if (filtroEmpresa !== "Todas" && ticket.empresa !== filtroEmpresa) {
+      return false;
+    }
+
+    if (filtroPrioridad !== "Todas" && ticket.prioridad !== filtroPrioridad) {
+      return false;
+    }
+
+    const texto = busqueda.trim().toLowerCase();
+    if (texto) {
+      const coincideAsunto = ticket.asunto?.toLowerCase().includes(texto);
+      const coincideId = `tk-${ticket.id}`.includes(texto);
+      if (!coincideAsunto && !coincideId) return false;
+    }
+
+    return true;
   });
 
   const pestañas = [
@@ -169,6 +199,53 @@ function DashboardPage() {
                 </div>
               </div>
             )}
+
+            {/* BÚSQUEDA Y FILTROS: por texto, empresa (solo Técnico, que ve
+                las 4 compañías) y prioridad. */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <span
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"
+                >
+                  🔍
+                </span>
+                <input
+                  type="text"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar por asunto o folio (TK-123)..."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              {esTecnico() && empresasDisponibles.length > 1 && (
+                <select
+                  value={filtroEmpresa}
+                  onChange={(e) => setFiltroEmpresa(e.target.value)}
+                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                >
+                  <option value="Todas">Todas las empresas</option>
+                  {empresasDisponibles.map((empresa) => (
+                    <option key={empresa} value={empresa}>
+                      {empresa}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <select
+                value={filtroPrioridad}
+                onChange={(e) => setFiltroPrioridad(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+              >
+                <option value="Todas">Toda prioridad</option>
+                <option value="Critica">Crítica</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+            </div>
 
             {/* BOTONERA DE PESTAÑAS (TABS), con conteo por estado */}
             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 w-fit">
